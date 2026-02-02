@@ -19,60 +19,34 @@
 
 ---
 
-### 2) Розрахунок RPS для 5-хвилинного тесту
-Є 2 можливі трактовки, тому даю обидві (щоб не промахнутись):
+### 2) Розрахунок RPS для 5-хвилинного тесту (обраний підхід: середній добовий RPS)
+Ми беремо **добовий обсяг** і ділимо на кількість секунд у добі.
 
-#### A) “Симулюємо середнє навантаження доби” (без стиснення)
 Формула:
 - **RPS = requests_per_day / 86400**
 
-1) **5 000 000 / день**
-- RPS ≈ 5,000,000 / 86,400 ≈ **57.87 RPS**
-- За 5 хв (300 сек) буде ~ **17,361** запит
+1) **5 000 000 запитів / день**
+- RPS ≈ 5,000,000 / 86,400 ≈ **57.87 RPS** (округлюємо як **58–60 RPS**)
+- За 5 хв (300 сек) це буде приблизно **17,400–18,000** запитів
 
-2) **50 000 000 / день**
-- RPS ≈ 50,000,000 / 86,400 ≈ **578.70 RPS**
-- За 5 хв буде ~ **173,610** запитів
+2) **50 000 000 запитів / день**
+- RPS ≈ 50,000,000 / 86,400 ≈ **578.70 RPS** (округлюємо як **580–600 RPS**)
+- За 5 хв це буде приблизно **174,000–180,000** запитів
 
-Це найбільш “чесний” 5-хв тест, якщо ціль — перевірити стабільність на рівні середньої добової інтенсивності.
-
-#### B) “Стискаємо добовий обсяг у 5 хв” (дуже жорсткий stress)
-Формула:
-- **RPS = requests_per_day / 300**
-
-1) **5 000 000 / день в 5 хв**
-- RPS ≈ 5,000,000 / 300 ≈ **16,666.67 RPS**
-
-2) **50 000 000 / день в 5 хв**
-- RPS ≈ 50,000,000 / 300 ≈ **166,666.67 RPS**
-
-Це вже екстремальний режим, який часто вимагає **розподіленого генератора навантаження** (кілька машин) + оптимізацію тестового інструменту.
+Цей підхід підходить, якщо ціль — перевірити стабільність, таймаути й віддачу даних на рівні “середнього навантаження доби”.
 
 ---
 
 ### 3) Чи підійде k6 для цих RPS?
 
-#### Для 58 RPS і 579 RPS
-Так, **k6 підходить дуже добре**. Це нормальні цифри для одного хоста-генератора (якщо сервер відповідає швидко).
+Для цільових режимів **~58–60 RPS** та **~580–600 RPS**:
+- Так, **k6 підходить дуже добре**.
+- Це реалістичне навантаження навіть для одного генератора (особливо у внутрішній мережі), якщо:
+  - не логувати всі відповіді повністю
+  - робити лише потрібний парсинг JSON (`selections.length > 0`)
 
-#### Для 16,667 RPS
-Можливо, але залежить від:
-- latency відповіді (чим більша, тим більше потрібних VUs/ресурсів)
-- CPU/RAM генератора
-- чи парсимо body для кожного запиту
-
-Реалістично: часто потрібно або дуже сильний сервер-генератор, або 2–5 машин.
-
-#### Для 166,667 RPS
-Це **дуже високо** для “однієї машини” у реальному HTTP (навіть в LAN).
-- k6 може, але майже точно треба **distributed** (k6 operator / кілька інстансів k6) і акуратний підхід до логування/парсингу.
-- якщо тест простий (GET, мінімальний парсинг) інколи беруть інші генератори (wrk/vegeta), але тоді важче робити body-driven репорти.
-
-**Висновок:**
-- Для твоєї вимоги “репорт на базі response body” я все одно ставлю k6 як основний.
-- Для 166k RPS я б або:
-  1) робив distributed k6 (кілька генераторів), або
-  2) розділив задачі: (а) пропускна здатність чисто по HTTP (wrk/vegeta), (б) валідність body (k6 на меншому RPS, але з перевірками).
+Висновок:
+- **k6 лишаємо як основний інструмент** для цих двох тестів.
 
 ---
 
@@ -245,31 +219,30 @@ We need:
 
 ---
 
-### 2) RPS calculations for a 5-minute test
-There are two interpretations, so here are both:
+### 2) RPS calculations for a 5-minute test (chosen approach: average daily RPS)
+We take the **daily volume** and divide it by the number of seconds in a day.
 
-#### A) “Simulate average daily intensity” (no compression)
 Formula:
 - **RPS = requests_per_day / 86400**
 
-1) **5,000,000/day** → **57.87 RPS** (~17,361 requests in 5 min)
-2) **50,000,000/day** → **578.70 RPS** (~173,610 requests in 5 min)
+1) **5,000,000 requests/day**
+- RPS ≈ 5,000,000 / 86,400 ≈ **57.87 RPS** (round to **58–60 RPS**)
+- In 5 minutes (300s) this is roughly **17,400–18,000** requests
 
-#### B) “Compress the whole daily volume into 5 minutes” (extreme stress)
-Formula:
-- **RPS = requests_per_day / 300**
+2) **50,000,000 requests/day**
+- RPS ≈ 50,000,000 / 86,400 ≈ **578.70 RPS** (round to **580–600 RPS**)
+- In 5 minutes this is roughly **174,000–180,000** requests
 
-1) **5,000,000/day in 5 min** → **16,666.67 RPS**
-2) **50,000,000/day in 5 min** → **166,666.67 RPS**
-
-This extreme mode usually requires distributed load generation.
+This approach is suitable when the goal is to validate timeouts, stability, and data delivery at “average daily intensity”.
 
 ---
 
 ### 3) Is k6 sufficient?
-- For ~58 RPS and ~579 RPS: **yes**, k6 is an excellent fit.
-- For ~16.7k RPS: possible, but depends on latency and load-generator hardware; may require multiple generators.
-- For ~166k RPS: very high; likely needs **distributed k6** (multiple instances) and careful logging/body parsing. Sometimes teams split tools: pure throughput with wrk/vegeta + correctness sampling with k6.
+For the target modes **~58–60 RPS** and **~580–600 RPS**:
+- Yes, **k6 is an excellent fit**.
+- This load is realistic even for a single load-generator host (especially in LAN), as long as you:
+  - avoid logging full bodies for every request
+  - only parse the minimal JSON fields needed (`selections.length > 0`)
 
 ---
 
