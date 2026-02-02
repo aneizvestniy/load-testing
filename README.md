@@ -7,6 +7,6 @@
 - бажано (але не критично): **інтеграція з Grafana**
 
 Документація:
-- `docs/frameworks.md` — порівняння фреймворків + рекомендація
-- `docs/grafana-integration.md` — варіанти інтеграції в Grafana
+- `docs/frameworks_UA.md` / `docs/frameworks_EN.md` — порівняння фреймворків + рекомендація
+- `docs/grafana-integration_UA.md` / `docs/grafana-integration_EN.md` — варіанти інтеграції в Grafana
 - `examples/k6/` — приклади під k6 (план)
