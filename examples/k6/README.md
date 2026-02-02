@@ -1,11 +1,10 @@
 # k6 examples (plan)
 
-Planned files:
-- `script.js` — base scenario + stages
-- `custom-metrics.js` — metrics based on response body
-- `summary.js` — handleSummary() to produce custom JSON/HTML
+Files:
+- `script_selections_report.js` — base scenario + stages + body parsing (`selections.length>0`) + custom reports
+- `RUN.md` — how to run
 
 Key ideas:
-- log only errors or sampled responses (to avoid huge output)
+- log only errors / no-selections, plus body sample (to avoid huge output)
 - parse JSON response and build domain metrics
-- generate a separate report file for “body-driven insights”
+- generate separate report artifacts (`custom-report.json`, `custom-report.md`)
